@@ -4,7 +4,6 @@ import { useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { movies, type Movie } from '@/data/movies'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import {
   Star,
   Calendar,
@@ -59,9 +58,20 @@ export default function MovieDetailPage() {
   const availableServers = movie.downloadServers ? Object.keys(movie.downloadServers) : servers
 
   // Get download links
-  const getDownloadLinks = () => {
-    if (!movie.downloadServers || !dlServer) return []
-    return movie.downloadServers[dlServer] || []
+  const getDownloadLinks = (server?: string) => {
+    const s = server || dlServer
+    if (!movie.downloadServers || !s) return []
+    return movie.downloadServers[s] || []
+  }
+
+  // Get all download links (for movies - combine all servers)
+  const getAllDownloadLinks = () => {
+    if (!movie.downloadServers) return []
+    const allLinks: Array<{name: string; size: string; resolution: string; link: string}> = []
+    Object.entries(movie.downloadServers).forEach(([server, links]) => {
+      links.forEach(link => allLinks.push(link))
+    })
+    return allLinks
   }
 
   // Get episodes for season
@@ -69,12 +79,6 @@ export default function MovieDetailPage() {
     if (!movie.seasons) return []
     const season = movie.seasons.find(s => s.number === seasonNum)
     return season?.episodes || []
-  }
-
-  // Watch links for series
-  const getWatchLinks = () => {
-    if (!movie.downloadServers || !watchServer) return []
-    return movie.downloadServers[watchServer] || []
   }
 
   return (
@@ -333,7 +337,7 @@ export default function MovieDetailPage() {
 
         {activeTab === 'download' && (
           <div className="space-y-4">
-            {/* Movies */}
+            {/* Movies - Server tabs + Download Links together */}
             {!isSeries && (
               <>
                 <div>
@@ -354,6 +358,8 @@ export default function MovieDetailPage() {
                     ))}
                   </div>
                 </div>
+                
+                {/* Download Links Table */}
                 {dlServer && getDownloadLinks().length > 0 && (
                   <div className="border border-zinc-700 rounded-lg overflow-hidden">
                     <table className="w-full text-xs">
@@ -387,7 +393,7 @@ export default function MovieDetailPage() {
               </>
             )}
             
-            {/* Series */}
+            {/* Series - Season → Episode → Download Links (no Server step) */}
             {isSeries && movie.seasons && (
               <>
                 <div>
@@ -396,7 +402,7 @@ export default function MovieDetailPage() {
                     {movie.seasons.map((season) => (
                       <button
                         key={season.number}
-                        onClick={() => { setDlSeason(season.number); setDlEpisode(null); setDlServer(null); }}
+                        onClick={() => { setDlSeason(season.number); setDlEpisode(null); }}
                         className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                           dlSeason === season.number 
                             ? 'bg-red-600 text-white' 
@@ -408,6 +414,7 @@ export default function MovieDetailPage() {
                     ))}
                   </div>
                 </div>
+                
                 {getEpisodes(dlSeason).length > 0 && (
                   <div>
                     <h3 className="text-sm font-semibold text-white mb-3">Episode</h3>
@@ -428,27 +435,9 @@ export default function MovieDetailPage() {
                     </div>
                   </div>
                 )}
+                
+                {/* Download Links Table - appears after Episode selection */}
                 {dlEpisode && (
-                  <div>
-                    <h3 className="text-sm font-semibold text-white mb-3">Server</h3>
-                    <div className="flex flex-wrap gap-2">
-                      {availableServers.map((server) => (
-                        <button
-                          key={server}
-                          onClick={() => setDlServer(server)}
-                          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                            dlServer === server 
-                              ? 'bg-red-600 text-white' 
-                              : 'bg-zinc-800 text-gray-300 hover:bg-zinc-700'
-                          }`}
-                        >
-                          {server}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                {dlServer && getDownloadLinks().length > 0 && (
                   <div className="border border-zinc-700 rounded-lg overflow-hidden">
                     <table className="w-full text-xs">
                       <thead>
@@ -461,7 +450,7 @@ export default function MovieDetailPage() {
                         </tr>
                       </thead>
                       <tbody>
-                        {getDownloadLinks().map((dl, index) => (
+                        {getAllDownloadLinks().map((dl, index) => (
                           <tr key={index} className="border-t border-zinc-800 hover:bg-zinc-800/50">
                             <td className="py-2 px-3 text-gray-300">{index + 1}</td>
                             <td className="py-2 px-3 text-red-400">{dl.name}</td>
