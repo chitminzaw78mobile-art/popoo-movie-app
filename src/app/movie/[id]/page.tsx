@@ -2,10 +2,9 @@
 
 import { useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { movies, watchServers, downloadServerNames, type Movie } from '@/data/movies'
+import { movies, type Movie } from '@/data/movies'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   Star,
   Calendar,
@@ -28,25 +27,25 @@ export default function MovieDetailPage() {
   const movie = movies.find(m => m.id === movieId)
   
   const [activeTab, setActiveTab] = useState<TabType>('detail')
+  const [isBookmarked, setIsBookmarked] = useState(false)
   
   // Watch state
-  const [watchServer, setWatchServer] = useState<string | null>(null)
-  const [watchSeason, setWatchSeason] = useState<number>(1)
+  const [watchSeason, setWatchSeason] = useState(1)
   const [watchEpisode, setWatchEpisode] = useState<number | null>(null)
-  const [showVideo, setShowVideo] = useState(false)
+  const [watchServer, setWatchServer] = useState<string | null>(null)
   
-  // Download state
-  const [dlServer, setDlServer] = useState<string | null>(null)
-  const [dlSeason, setDlSeason] = useState<number>(1)
+  // Download state  
+  const [dlSeason, setDlSeason] = useState(1)
   const [dlEpisode, setDlEpisode] = useState<number | null>(null)
+  const [dlServer, setDlServer] = useState<string | null>(null)
 
   if (!movie) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-white mb-4">Movie Not Found</h1>
+          <h1 className="text-2xl font-bold text-white mb-4">Not Found</h1>
           <Button onClick={() => router.push('/')} className="bg-red-600 hover:bg-red-700">
-            Go Back Home
+            Go Home
           </Button>
         </div>
       </div>
@@ -55,163 +54,162 @@ export default function MovieDetailPage() {
 
   const isSeries = movie.type === 'series' || movie.type === 'anime'
 
-  const handleBack = () => {
-    router.push('/')
-  }
+  // Available servers
+  const servers = ['Server 1', 'Server 2', 'Server 3']
+  const availableServers = movie.downloadServers ? Object.keys(movie.downloadServers) : servers
 
-  const handleMovieClick = (selectedMovie: Movie) => {
-    router.push(`/movie/${selectedMovie.id}`)
-    setActiveTab('detail')
-    setWatchServer(null)
-    setWatchEpisode(null)
-    setShowVideo(false)
-    setDlServer(null)
-    setDlEpisode(null)
-  }
-
-  // Get available download servers for this movie
-  const availableServers = movie.downloadServers 
-    ? downloadServerNames.filter(s => movie.downloadServers![s])
-    : []
-
-  // Get download links for selected server
+  // Get download links
   const getDownloadLinks = () => {
     if (!movie.downloadServers || !dlServer) return []
     return movie.downloadServers[dlServer] || []
   }
 
-  // Get current season episodes
+  // Get episodes for season
   const getEpisodes = (seasonNum: number) => {
     if (!movie.seasons) return []
     const season = movie.seasons.find(s => s.number === seasonNum)
     return season?.episodes || []
   }
 
+  // Watch links for series
+  const getWatchLinks = () => {
+    if (!movie.downloadServers || !watchServer) return []
+    return movie.downloadServers[watchServer] || []
+  }
+
   return (
-    <div className="min-h-screen bg-background pb-8">
-      {/* Hero Section */}
-      <div className="relative h-72 sm:h-80">
+    <div className="min-h-screen bg-black">
+      {/* Hero Image */}
+      <div className="relative w-full h-[280px]">
         <img
           src={movie.backdrop || movie.poster}
           alt={movie.title}
           className="w-full h-full object-cover"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/50 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-transparent" />
         
-        {/* Back and Bookmark buttons */}
-        <div className="absolute top-4 left-4 right-4 flex justify-between">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={handleBack}
-            className="bg-black/50 backdrop-blur-sm text-white hover:text-red-500 hover:bg-black/70 rounded-full"
-          >
-            <ChevronLeft className="h-6 w-6" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="bg-black/50 backdrop-blur-sm text-red-500 hover:text-red-400 hover:bg-black/70 rounded-full"
-          >
-            <Heart className="h-5 w-5" />
-          </Button>
-        </div>
+        {/* Back & Bookmark Buttons */}
+        <button
+          onClick={() => router.back()}
+          className="absolute top-4 left-4 w-10 h-10 bg-black/50 backdrop-blur rounded-full flex items-center justify-center"
+        >
+          <ChevronLeft className="w-6 h-6 text-white" />
+        </button>
+        <button
+          onClick={() => setIsBookmarked(!isBookmarked)}
+          className="absolute top-4 right-4 w-10 h-10 bg-black/50 backdrop-blur rounded-full flex items-center justify-center"
+        >
+          <Heart className={`w-5 h-5 ${isBookmarked ? 'text-red-500 fill-red-500' : 'text-white'}`} />
+        </button>
       </div>
 
       {/* Content */}
-      <div className="px-4 -mt-16 relative z-10">
-        {/* Title & Info */}
-        <h1 className="text-2xl font-bold text-white mb-3">{movie.title}</h1>
+      <div className="px-4 -mt-20 relative z-10">
+        {/* Title */}
+        <h1 className="text-2xl font-bold text-white mb-2">{movie.title}</h1>
         
-        <div className="flex items-center gap-4 text-sm text-muted-foreground mb-3">
-          <div className="flex items-center gap-1">
-            <Calendar className="h-4 w-4" />
-            <span>{movie.year}</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <Star className="h-4 w-4 text-red-500 fill-red-500" />
+        {/* Meta Info */}
+        <div className="flex items-center gap-3 text-sm text-gray-400 mb-3">
+          <span className="flex items-center gap-1">
+            <Calendar className="w-4 h-4" />
+            {movie.year}
+          </span>
+          <span className="flex items-center gap-1">
+            <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
             <span className="text-white">{movie.rating}</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <Clock3 className="h-4 w-4" />
-            <span>{movie.duration}</span>
-          </div>
+          </span>
+          <span className="flex items-center gap-1">
+            <Clock3 className="w-4 h-4" />
+            {movie.duration}
+          </span>
         </div>
 
         {/* Genres */}
         <div className="flex flex-wrap gap-2 mb-4">
           {movie.genres.map((genre) => (
-            <Badge
+            <span
               key={genre}
-              variant="secondary"
-              className="bg-secondary text-white rounded-full px-3 py-1"
+              className="px-3 py-1 bg-zinc-800 text-white text-xs rounded-full"
             >
               {genre}
-            </Badge>
+            </span>
           ))}
         </div>
 
         {/* Tabs */}
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabType)} className="mt-4">
-          <TabsList className="bg-secondary w-full justify-start rounded-lg p-1 h-auto overflow-x-auto">
-            <TabsTrigger
-              value="detail"
-              className="flex-1 min-w-fit data-[state=active]:bg-red-600 data-[state=active]:text-white rounded-lg py-2 px-4"
-            >
-              <FileText className="h-4 w-4 mr-2" />
-              Detail
-            </TabsTrigger>
-            <TabsTrigger
-              value="watch"
-              className="flex-1 min-w-fit data-[state=active]:bg-red-600 data-[state=active]:text-white rounded-lg py-2 px-4"
-            >
-              <Play className="h-4 w-4 mr-2" />
-              Watch
-            </TabsTrigger>
-            <TabsTrigger
-              value="download"
-              className="flex-1 min-w-fit data-[state=active]:bg-red-600 data-[state=active]:text-white rounded-lg py-2 px-4"
-            >
-              <Download className="h-4 w-4 mr-2" />
-              Download
-            </TabsTrigger>
-            <TabsTrigger
-              value="explore"
-              className="flex-1 min-w-fit data-[state=active]:bg-red-600 data-[state=active]:text-white rounded-lg py-2 px-4"
-            >
-              <ThumbsUp className="h-4 w-4 mr-2" />
-              Explore
-            </TabsTrigger>
-          </TabsList>
+        <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
+          <button
+            onClick={() => setActiveTab('detail')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
+              activeTab === 'detail' 
+                ? 'bg-red-600 text-white' 
+                : 'bg-zinc-800 text-gray-300 hover:bg-zinc-700'
+            }`}
+          >
+            <FileText className="w-4 h-4" />
+            Detail
+          </button>
+          <button
+            onClick={() => setActiveTab('watch')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
+              activeTab === 'watch' 
+                ? 'bg-red-600 text-white' 
+                : 'bg-zinc-800 text-gray-300 hover:bg-zinc-700'
+            }`}
+          >
+            <Play className="w-4 h-4" />
+            Watch
+          </button>
+          <button
+            onClick={() => setActiveTab('download')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
+              activeTab === 'download' 
+                ? 'bg-red-600 text-white' 
+                : 'bg-zinc-800 text-gray-300 hover:bg-zinc-700'
+            }`}
+          >
+            <Download className="w-4 h-4" />
+            Download
+          </button>
+          <button
+            onClick={() => setActiveTab('explore')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
+              activeTab === 'explore' 
+                ? 'bg-red-600 text-white' 
+                : 'bg-zinc-800 text-gray-300 hover:bg-zinc-700'
+            }`}
+          >
+            <ThumbsUp className="w-4 h-4" />
+            Explore
+          </button>
+        </div>
 
-          {/* Detail Tab */}
-          <TabsContent value="detail" className="mt-4">
-            <div className="mb-6">
-              <h3 className="text-lg font-semibold text-white mb-2">Review</h3>
-              <p className="text-muted-foreground text-sm leading-relaxed">
-                {movie.description}
+        {/* Tab Content */}
+        {activeTab === 'detail' && (
+          <div className="space-y-4">
+            <div>
+              <h3 className="text-base font-semibold text-white mb-2">Review</h3>
+              <p className="text-gray-400 text-sm leading-relaxed">
+                {movie.description || 'No description available.'}
               </p>
             </div>
-
             {movie.director && (
-              <div className="mb-4">
-                <span className="text-white font-medium">Director : </span>
-                <span className="text-muted-foreground">{movie.director}</span>
+              <div>
+                <span className="text-gray-500 text-sm">Director: </span>
+                <span className="text-white text-sm">{movie.director}</span>
               </div>
             )}
-
-            <div className="mb-4">
-              <span className="text-white font-medium">Tags : </span>
-              <span className="text-muted-foreground">{movie.genres.join(', ')}</span>
+            <div>
+              <span className="text-gray-500 text-sm">Tags: </span>
+              <span className="text-white text-sm">{movie.genres.join(', ')}</span>
             </div>
-
             {movie.cast && movie.cast.length > 0 && (
-              <div className="mb-6">
-                <h3 className="text-lg font-semibold text-white mb-3">Casts</h3>
-                <div className="flex gap-4 overflow-x-auto pb-2 hide-scrollbar">
+              <div>
+                <h3 className="text-base font-semibold text-white mb-3">Casts</h3>
+                <div className="flex gap-3 overflow-x-auto pb-2">
                   {movie.cast.map((member, index) => (
-                    <div key={index} className="flex flex-col items-center min-w-[80px]">
-                      <div className="w-16 h-16 mb-2 rounded-full overflow-hidden bg-secondary">
+                    <div key={index} className="flex flex-col items-center min-w-[70px]">
+                      <div className="w-14 h-14 rounded-full overflow-hidden bg-zinc-800 mb-1">
                         <img src={member.image} alt={member.name} className="w-full h-full object-cover" />
                       </div>
                       <span className="text-xs text-white text-center">{member.name}</span>
@@ -220,192 +218,165 @@ export default function MovieDetailPage() {
                 </div>
               </div>
             )}
-          </TabsContent>
+          </div>
+        )}
 
-          {/* Watch Tab */}
-          <TabsContent value="watch" className="mt-4">
-            {/* For Movies */}
+        {activeTab === 'watch' && (
+          <div className="space-y-4">
+            {/* Movies */}
             {!isSeries && (
               <>
-                <div className="mb-4">
-                  <h3 className="text-lg font-semibold text-white mb-3">Server</h3>
+                <div>
+                  <h3 className="text-sm font-semibold text-white mb-3">Server</h3>
                   <div className="flex flex-wrap gap-2">
-                    {watchServers.map((server) => (
-                      <Button
+                    {servers.map((server) => (
+                      <button
                         key={server}
-                        variant="secondary"
-                        className={`rounded-lg px-4 py-2 ${
-                          watchServer === server
-                            ? 'bg-red-600 text-white hover:bg-red-700'
-                            : 'bg-secondary text-white hover:bg-secondary/80'
+                        onClick={() => setWatchServer(server)}
+                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                          watchServer === server 
+                            ? 'bg-red-600 text-white' 
+                            : 'bg-zinc-800 text-gray-300 hover:bg-zinc-700'
                         }`}
-                        onClick={() => {
-                          setWatchServer(server)
-                          setShowVideo(true)
-                        }}
                       >
                         {server}
-                      </Button>
+                      </button>
                     ))}
                   </div>
                 </div>
-
-                {showVideo && watchServer && (
-                  <div className="aspect-video bg-black rounded-lg flex items-center justify-center mt-4">
+                {watchServer && (
+                  <div className="aspect-video bg-zinc-900 rounded-lg flex items-center justify-center">
                     <div className="text-center">
-                      <MonitorPlay className="h-16 w-16 text-red-500 mx-auto mb-4" />
-                      <p className="text-white text-lg font-medium">Video Player</p>
-                      <p className="text-muted-foreground text-sm">{watchServer}</p>
+                      <MonitorPlay className="w-12 h-12 text-red-500 mx-auto mb-2" />
+                      <p className="text-white">Video Player</p>
+                      <p className="text-gray-500 text-sm">{watchServer}</p>
                     </div>
                   </div>
                 )}
               </>
             )}
-
-            {/* For Series/Anime */}
+            
+            {/* Series */}
             {isSeries && movie.seasons && (
               <>
-                {/* Season */}
-                <div className="mb-4">
-                  <h3 className="text-lg font-semibold text-white mb-3">Season</h3>
+                <div>
+                  <h3 className="text-sm font-semibold text-white mb-3">Season</h3>
                   <div className="flex flex-wrap gap-2">
                     {movie.seasons.map((season) => (
-                      <Button
+                      <button
                         key={season.number}
-                        variant="secondary"
-                        className={`rounded-lg px-4 py-2 ${
-                          watchSeason === season.number
-                            ? 'bg-red-600 text-white hover:bg-red-700'
-                            : 'bg-secondary text-white hover:bg-secondary/80'
+                        onClick={() => { setWatchSeason(season.number); setWatchEpisode(null); setWatchServer(null); }}
+                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                          watchSeason === season.number 
+                            ? 'bg-red-600 text-white' 
+                            : 'bg-zinc-800 text-gray-300 hover:bg-zinc-700'
                         }`}
-                        onClick={() => {
-                          setWatchSeason(season.number)
-                          setWatchEpisode(null)
-                          setWatchServer(null)
-                          setShowVideo(false)
-                        }}
                       >
                         {season.name}
-                      </Button>
+                      </button>
                     ))}
                   </div>
                 </div>
-
-                {/* Episode */}
                 {getEpisodes(watchSeason).length > 0 && (
-                  <div className="mb-4">
-                    <h3 className="text-lg font-semibold text-white mb-3">Episode</h3>
-                    <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
+                  <div>
+                    <h3 className="text-sm font-semibold text-white mb-3">Episode</h3>
+                    <div className="grid grid-cols-4 gap-2">
                       {getEpisodes(watchSeason).map((ep) => (
-                        <Button
+                        <button
                           key={ep.number}
-                          variant="secondary"
-                          className={`rounded-lg py-3 ${
-                            watchEpisode === ep.number
-                              ? 'bg-red-600 text-white hover:bg-red-700'
-                              : 'bg-secondary text-white hover:bg-secondary/80'
-                          }`}
                           onClick={() => setWatchEpisode(ep.number)}
+                          className={`py-2 rounded-lg text-sm font-medium transition-colors ${
+                            watchEpisode === ep.number 
+                              ? 'bg-red-600 text-white' 
+                              : 'bg-zinc-800 text-gray-300 hover:bg-zinc-700'
+                          }`}
                         >
                           EP {ep.number}
-                        </Button>
+                        </button>
                       ))}
                     </div>
                   </div>
                 )}
-
-                {/* Server */}
                 {watchEpisode && (
-                  <div className="mb-4">
-                    <h3 className="text-lg font-semibold text-white mb-3">Server</h3>
+                  <div>
+                    <h3 className="text-sm font-semibold text-white mb-3">Server</h3>
                     <div className="flex flex-wrap gap-2">
-                      {watchServers.map((server) => (
-                        <Button
+                      {servers.map((server) => (
+                        <button
                           key={server}
-                          variant="secondary"
-                          className={`rounded-lg px-4 py-2 ${
-                            watchServer === server
-                              ? 'bg-red-600 text-white hover:bg-red-700'
-                              : 'bg-secondary text-white hover:bg-secondary/80'
+                          onClick={() => setWatchServer(server)}
+                          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                            watchServer === server 
+                              ? 'bg-red-600 text-white' 
+                              : 'bg-zinc-800 text-gray-300 hover:bg-zinc-700'
                           }`}
-                          onClick={() => {
-                            setWatchServer(server)
-                            setShowVideo(true)
-                          }}
                         >
                           {server}
-                        </Button>
+                        </button>
                       ))}
                     </div>
                   </div>
                 )}
-
-                {/* Video Player */}
-                {showVideo && watchServer && (
-                  <div className="aspect-video bg-black rounded-lg flex items-center justify-center mt-4">
+                {watchServer && (
+                  <div className="aspect-video bg-zinc-900 rounded-lg flex items-center justify-center">
                     <div className="text-center">
-                      <MonitorPlay className="h-16 w-16 text-red-500 mx-auto mb-4" />
-                      <p className="text-white text-lg font-medium">Video Player</p>
-                      <p className="text-muted-foreground text-sm">
-                        S{watchSeason} E{watchEpisode} - {watchServer}
-                      </p>
+                      <MonitorPlay className="w-12 h-12 text-red-500 mx-auto mb-2" />
+                      <p className="text-white">Video Player</p>
+                      <p className="text-gray-500 text-sm">S{watchSeason} E{watchEpisode} - {watchServer}</p>
                     </div>
                   </div>
                 )}
               </>
             )}
-          </TabsContent>
+          </div>
+        )}
 
-          {/* Download Tab */}
-          <TabsContent value="download" className="mt-4">
-            {/* For Movies */}
+        {activeTab === 'download' && (
+          <div className="space-y-4">
+            {/* Movies */}
             {!isSeries && (
               <>
-                {/* Server */}
-                <div className="mb-4">
-                  <h3 className="text-lg font-semibold text-white mb-3">Server</h3>
+                <div>
+                  <h3 className="text-sm font-semibold text-white mb-3">Server</h3>
                   <div className="flex flex-wrap gap-2">
                     {availableServers.map((server) => (
-                      <Button
+                      <button
                         key={server}
-                        variant="secondary"
-                        className={`rounded-lg px-4 py-2 ${
-                          dlServer === server
-                            ? 'bg-red-600 text-white hover:bg-red-700'
-                            : 'bg-secondary text-white hover:bg-secondary/80'
-                        }`}
                         onClick={() => setDlServer(server)}
+                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                          dlServer === server 
+                            ? 'bg-red-600 text-white' 
+                            : 'bg-zinc-800 text-gray-300 hover:bg-zinc-700'
+                        }`}
                       >
                         {server}
-                      </Button>
+                      </button>
                     ))}
                   </div>
                 </div>
-
-                {/* Download Links Table for Movies */}
                 {dlServer && getDownloadLinks().length > 0 && (
-                  <div className="overflow-x-auto rounded-lg border border-border">
-                    <table className="w-full text-sm text-white">
+                  <div className="border border-zinc-700 rounded-lg overflow-hidden">
+                    <table className="w-full text-xs">
                       <thead>
-                        <tr className="border-b border-border bg-secondary/30">
-                          <th className="text-left py-2.5 px-3 text-xs font-medium">No</th>
-                          <th className="text-left py-2.5 px-3 text-xs font-medium">Server</th>
-                          <th className="text-left py-2.5 px-3 text-xs font-medium">Size</th>
-                          <th className="text-left py-2.5 px-3 text-xs font-medium">Resolution</th>
-                          <th className="text-left py-2.5 px-3 text-xs font-medium">Link</th>
+                        <tr className="bg-zinc-800 text-gray-400">
+                          <th className="text-left py-2 px-3 font-medium">No</th>
+                          <th className="text-left py-2 px-3 font-medium">Server</th>
+                          <th className="text-left py-2 px-3 font-medium">Size</th>
+                          <th className="text-left py-2 px-3 font-medium">Resolution</th>
+                          <th className="text-left py-2 px-3 font-medium">Link</th>
                         </tr>
                       </thead>
                       <tbody>
                         {getDownloadLinks().map((dl, index) => (
-                          <tr key={index} className="border-b border-border/30 hover:bg-secondary/20">
-                            <td className="py-2.5 px-3 text-xs">{index + 1}</td>
-                            <td className="py-2.5 px-3 text-xs text-red-400 font-medium">{dl.name}</td>
-                            <td className="py-2.5 px-3 text-xs">{dl.size}</td>
-                            <td className="py-2.5 px-3 text-xs">{dl.resolution}</td>
-                            <td className="py-2.5 px-3">
-                              <Button size="sm" className="bg-red-600 hover:bg-red-700 text-white text-xs h-7 px-3">
+                          <tr key={index} className="border-t border-zinc-800 hover:bg-zinc-800/50">
+                            <td className="py-2 px-3 text-gray-300">{index + 1}</td>
+                            <td className="py-2 px-3 text-red-400">{dl.name}</td>
+                            <td className="py-2 px-3 text-gray-300">{dl.size}</td>
+                            <td className="py-2 px-3 text-gray-300">{dl.resolution}</td>
+                            <td className="py-2 px-3">
+                              <button className="bg-red-600 hover:bg-red-700 text-white text-xs px-3 py-1 rounded">
                                 Download
-                              </Button>
+                              </button>
                             </td>
                           </tr>
                         ))}
@@ -415,105 +386,91 @@ export default function MovieDetailPage() {
                 )}
               </>
             )}
-
-            {/* For Series/Anime */}
+            
+            {/* Series */}
             {isSeries && movie.seasons && (
               <>
-                {/* Season */}
-                <div className="mb-4">
-                  <h3 className="text-lg font-semibold text-white mb-3">Season</h3>
+                <div>
+                  <h3 className="text-sm font-semibold text-white mb-3">Season</h3>
                   <div className="flex flex-wrap gap-2">
                     {movie.seasons.map((season) => (
-                      <Button
+                      <button
                         key={season.number}
-                        variant="secondary"
-                        className={`rounded-lg px-4 py-2 ${
-                          dlSeason === season.number
-                            ? 'bg-red-600 text-white hover:bg-red-700'
-                            : 'bg-secondary text-white hover:bg-secondary/80'
+                        onClick={() => { setDlSeason(season.number); setDlEpisode(null); setDlServer(null); }}
+                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                          dlSeason === season.number 
+                            ? 'bg-red-600 text-white' 
+                            : 'bg-zinc-800 text-gray-300 hover:bg-zinc-700'
                         }`}
-                        onClick={() => {
-                          setDlSeason(season.number)
-                          setDlEpisode(null)
-                          setDlServer(null)
-                        }}
                       >
                         {season.name}
-                      </Button>
+                      </button>
                     ))}
                   </div>
                 </div>
-
-                {/* Episode */}
                 {getEpisodes(dlSeason).length > 0 && (
-                  <div className="mb-4">
-                    <h3 className="text-lg font-semibold text-white mb-3">Episode</h3>
-                    <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
+                  <div>
+                    <h3 className="text-sm font-semibold text-white mb-3">Episode</h3>
+                    <div className="grid grid-cols-4 gap-2">
                       {getEpisodes(dlSeason).map((ep) => (
-                        <Button
+                        <button
                           key={ep.number}
-                          variant="secondary"
-                          className={`rounded-lg py-3 ${
-                            dlEpisode === ep.number
-                              ? 'bg-red-600 text-white hover:bg-red-700'
-                              : 'bg-secondary text-white hover:bg-secondary/80'
-                          }`}
                           onClick={() => setDlEpisode(ep.number)}
+                          className={`py-2 rounded-lg text-sm font-medium transition-colors ${
+                            dlEpisode === ep.number 
+                              ? 'bg-red-600 text-white' 
+                              : 'bg-zinc-800 text-gray-300 hover:bg-zinc-700'
+                          }`}
                         >
                           EP {ep.number}
-                        </Button>
+                        </button>
                       ))}
                     </div>
                   </div>
                 )}
-
-                {/* Server */}
                 {dlEpisode && (
-                  <div className="mb-4">
-                    <h3 className="text-lg font-semibold text-white mb-3">Server</h3>
+                  <div>
+                    <h3 className="text-sm font-semibold text-white mb-3">Server</h3>
                     <div className="flex flex-wrap gap-2">
                       {availableServers.map((server) => (
-                        <Button
+                        <button
                           key={server}
-                          variant="secondary"
-                          className={`rounded-lg px-4 py-2 ${
-                            dlServer === server
-                              ? 'bg-red-600 text-white hover:bg-red-700'
-                              : 'bg-secondary text-white hover:bg-secondary/80'
-                          }`}
                           onClick={() => setDlServer(server)}
+                          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                            dlServer === server 
+                              ? 'bg-red-600 text-white' 
+                              : 'bg-zinc-800 text-gray-300 hover:bg-zinc-700'
+                          }`}
                         >
                           {server}
-                        </Button>
+                        </button>
                       ))}
                     </div>
                   </div>
                 )}
-
-                {/* Download Links Table for Series */}
                 {dlServer && getDownloadLinks().length > 0 && (
-                  <div className="overflow-x-auto rounded-lg border border-border">
-                    <table className="w-full text-sm text-white">
+                  <div className="border border-zinc-700 rounded-lg overflow-hidden">
+                    <table className="w-full text-xs">
                       <thead>
-                        <tr className="border-b border-border bg-secondary/30">
-                          <th className="text-left py-2.5 px-3 text-xs font-medium">No</th>
-                          <th className="text-left py-2.5 px-3 text-xs font-medium">Server</th>
-                          <th className="text-left py-2.5 px-3 text-xs font-medium">Size</th>
-                          <th className="text-left py-2.5 px-3 text-xs font-medium">Resolution</th>
-                          <th className="text-left py-2.5 px-3 text-xs font-medium">Link</th>
+                        <tr className="bg-zinc-800 text-gray-400">
+                          <th className="text-left py-2 px-3 font-medium">No</th>
+                          <th className="text-left py-2 px-3 font-medium">Server</th>
+                          <th className="text-left py-2 px-3 font-medium">Size</th>
+                          <th className="text-left py-2 px-3 font-medium">Resolution</th>
+                          <th className="text-left py-2 px-3 font-medium">Link</th>
                         </tr>
                       </thead>
                       <tbody>
                         {getDownloadLinks().map((dl, index) => (
-                          <tr key={index} className="border-b border-border/30 hover:bg-secondary/20">
-                            <td className="py-2.5 px-3 text-xs">{index + 1}</td>
-                            <td className="py-2.5 px-3 text-xs text-red-400 font-medium">{dl.name}</td>
-                            <td className="py-2.5 px-3 text-xs">{dl.size}</td>
-                            <td className="py-2.5 px-3 text-xs">{dl.resolution}</td>
-                            <td className="py-2.5 px-3">
-                              <Button size="sm" className="bg-red-600 hover:bg-red-700 text-white text-xs h-7 px-3">
+                          <tr key={index} className="border-t border-zinc-800 hover:bg-zinc-800/50">
+                            <td className="py-2 px-3 text-gray-300">{index + 1}</td>
+                            <td className="py-2 px-3 text-red-400">{dl.name}</td>
+                            <td className="py-2 px-3 text-gray-300">{dl.size}</td>
+                            <td className="py-2 px-3 text-gray-300">{dl.resolution}</td>
+                            <td className="py-2 px-3">
+                              <button className="bg-red-600 hover:bg-red-700 text-white text-xs px-3 py-1 rounded">
                                 Download
-                              </Button>
+                              </button>
                             </td>
                           </tr>
                         ))}
@@ -523,36 +480,33 @@ export default function MovieDetailPage() {
                 )}
               </>
             )}
-          </TabsContent>
+          </div>
+        )}
 
-          {/* Explore Tab */}
-          <TabsContent value="explore" className="mt-4">
-            <h3 className="text-lg font-semibold text-white mb-4">You may also like</h3>
+        {activeTab === 'explore' && (
+          <div>
+            <h3 className="text-base font-semibold text-white mb-3">You may also like</h3>
             <div className="grid grid-cols-4 gap-2">
               {movies.filter(m => m.id !== movie.id).slice(0, 8).map((m) => (
                 <div
                   key={m.id}
-                  className="cursor-pointer group"
-                  onClick={() => handleMovieClick(m)}
+                  onClick={() => router.push(`/movie/${m.id}`)}
+                  className="cursor-pointer"
                 >
-                  <div className="relative aspect-[2/3] rounded-lg overflow-hidden mb-1">
-                    <img
-                      src={m.poster}
-                      alt={m.title}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                    />
-                    <div className="absolute bottom-1 right-1 bg-white/90 rounded px-1 py-0.5 flex items-center gap-0.5">
-                      <Star className="h-2.5 w-2.5 text-red-500 fill-red-500" />
+                  <div className="relative aspect-[2/3] rounded overflow-hidden mb-1">
+                    <img src={m.poster} alt={m.title} className="w-full h-full object-cover" />
+                    <div className="absolute bottom-1 right-1 bg-white/90 rounded px-1 flex items-center gap-0.5">
+                      <Star className="w-2.5 h-2.5 text-red-500 fill-red-500" />
                       <span className="text-[10px] font-medium text-black">{m.rating}</span>
                     </div>
                   </div>
-                  <h4 className="text-[10px] font-medium text-white truncate">{m.title}</h4>
-                  <p className="text-[10px] text-muted-foreground">{m.year}</p>
+                  <p className="text-[10px] text-white truncate">{m.title}</p>
+                  <p className="text-[10px] text-gray-500">{m.year}</p>
                 </div>
               ))}
             </div>
-          </TabsContent>
-        </Tabs>
+          </div>
+        )}
       </div>
     </div>
   )
